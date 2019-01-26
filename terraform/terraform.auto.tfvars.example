@@ -1,0 +1,46 @@
+# This must be set to an existing SSH keypair in the AWS region you are 
+# building the infrastructure in. Mandatory.
+ssh_key_name = ""
+
+# This can be set to any common tags you want applied to the resources
+# created. Optional.
+tags = {
+  "key" = "value"
+}
+
+# Variables for terraform-aws-vpc
+
+# CIDR block to use for the VPC. Mandatory.
+vpc_cidr = "<cidr block here>"
+
+# Tags to apply to the database subnet. Mandatory.
+database_subnet_tags = {
+  "key" = "value"
+}
+
+# Subnets for databases. Mandatory.
+database_subnets = ["<cidr>", "<blocks>"]
+
+# Name for default VPC. Mandatory.
+default_vpc_name = "thomas-hashihang-vpc"
+
+# Tags to apply to VPC. Mandatory.
+default_vpc_tags = {
+  "key" = "value"
+}
+
+# Private subnets to create. Mandatory.
+private_subnets = ["<cidr>", "<blocks>"]
+
+# Tags to apply to private subnets. Mandatory
+private_subnet_tags = {
+  "key" = "value"
+}
+
+# Public subnet CIDR blocks. Mandatory.
+public_subnets = ["<cidr block>"]
+
+# Tags to apply to public subnets. Mandatory.
+public_subnet_tags = {
+  "key" = "value"
+}

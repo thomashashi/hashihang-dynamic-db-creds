@@ -1,0 +1,27 @@
+#!/bin/sh
+
+VAULT_VERSION="1.0.2"
+VAULT_DOWNLOAD="https://releases.hashicorp.com/vault/${VAULT_VERSION}/vault_${VAULT_VERSION}_linux_amd64.zip"
+CONSUL_TEMPLATE_VERSION="0.19.5"
+CONSUL_TEMPLATE_DOWNLOAD="https://releases.hashicorp.com/consul-template/${CONSUL_TEMPLATE_VERSION}/consul-template_${CONSUL_TEMPLATE_VERSION}_linux_amd64.zip"
+ENVCONSUL_VERSION="0.7.3"
+ENVCONSUL_DOWNLOAD="https://releases.hashicorp.com/envconsul/${ENVCONSUL_VERSION}/envconsul_${ENVCONSUL_VERSION}_linux_amd64.zip"
+
+# Update and install supporting software
+sudo yum update -y
+sudo yum install -y mysql57 jq
+
+# Download and install Vault, consul-template and envconsul
+curl -so vault.zip ${VAULT_DOWNLOAD}
+curl -so consul-template.zip ${CONSUL_TEMPLATE_DOWNLOAD}
+curl -so envconsul.zip ${ENVCONSUL_DOWNLOAD}
+
+unzip vault.zip
+unzip consul-template.zip
+unzip envconsul.zip
+
+install -d bin
+
+sudo install vault consul-template envconsul bin
+
+rm -f vault vault.zip consul-template consul-template.zip envconsul envconsul.zip

@@ -1,0 +1,49 @@
+#!/bin/sh
+
+PATH=`pwd`/bin:$PATH
+if [ -f demo_env.sh ]; then
+    . ./demo_env.sh
+fi
+
+export VAULT_TOKEN=${VAULT_ROOT_TOKEN}
+
+clear
+echo "Let's now generate some tokens with the sakila-admin policy"
+echo "and see what happens when we try to use them to get access to"
+echo "the sakila-backend database role"
+echo
+echo
+echo "vault token create -policy sakila-admin"
+vault token create -policy sakila-admin -format=json > sakila-admin.token
+SAKILA_ADMIN_TOKEN=`jq -r .auth.client_token sakila-admin.token`
+VAULT_TOKEN=$SAKILA_ADMIN_TOKEN vault read auth/token/lookup-self
+
+read
+clear
+echo "Now try to fetch sakila-backend database role credentials"
+echo
+echo
+echo "vault read database/creds/sakila-backend"
+VAULT_TOKEN=$SAKILA_ADMIN_TOKEN vault read database/creds/sakila-backend -format=json
+
+
+read
+clear
+echo "Same idea, just the other way: attempt to access the sakila-admin"
+echo "role when I only have sakila-backend rights"
+echo
+echo
+echo "vault token create -policy sakila-backend"
+vault token create -policy sakila-backend -format=json > sakila-backend.token
+SAKILA_BACKEND_TOKEN=`jq -r .auth.client_token sakila-backend.token`
+VAULT_TOKEN=$SAKILA_BACKEND_TOKEN vault read auth/token/lookup-self
+
+read
+clear
+echo "Now try to fetch sakila-admin database role credentials"
+echo
+echo
+echo "vault read database/creds/sakila-admin"
+VAULT_TOKEN=$SAKILA_BACKEND_TOKEN vault read database/creds/sakila-admin -format=json
+echo
+echo

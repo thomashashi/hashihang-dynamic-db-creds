@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ -f vault.pid ]; then
+    kill $(cat vault.pid)
+    rm vault.pid
+fi

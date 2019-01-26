@@ -1,0 +1,8 @@
+[client]
+host={{ env "DB_HOSTNAME" }}
+port={{ env "DB_PORT" }}
+{{ with secret "database/creds/sakila-backend" }}
+user={{ .Data.username }}
+password="{{ .Data.password }}"
+# Lease: {{ .LeaseID }}
+{{ end }}

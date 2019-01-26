@@ -1,0 +1,45 @@
+#!/bin/sh
+
+PATH=`pwd`/bin:$PATH
+if [ -f demo_env.sh ]; then
+    . ./demo_env.sh
+fi
+
+export VAULT_TOKEN=${VAULT_ROOT_TOKEN}
+vault token create -policy sakila-backend -format=json > sakila-backend.token
+SAKILA_BACKEND_TOKEN=`jq -r .auth.client_token sakila-backend.token`
+
+clear
+echo "Let's use a tool called 'consul-template' to automate retrieving"
+echo "secrets from Vault and rendering them in a way that existing"
+echo "applications can easily consume in their configuration files."
+echo
+echo
+read
+
+clear
+echo "Consul-template renders a template, like this one:"
+echo
+echo
+cat 007-sakila-backend.my.cnf.tmpl
+read
+
+clear
+echo "We'll run it once to generate a MySQL default file"
+echo
+echo 'VAULT_TOKEN=$SAKILA_BACKEND_TOKEN consul-template \
+    -vault-addr=$VAULT_ADDR \
+    -template "007-sakila-backend.my.cnf.tmpl:sakila-backend-0.my.cnf" \a
+    -once -vault-renew-token'
+VAULT_TOKEN=$SAKILA_BACKEND_TOKEN consul-template \
+    -vault-addr=$VAULT_ADDR \
+    -template "007-sakila-backend.my.cnf.tmpl:sakila-backend-0.my.cnf" \
+    -once -vault-renew-token  2>/dev/null
+read
+
+clear
+echo "Looking in the file, we see it looks like a regular MySQL defaults"
+echo "file:"
+echo
+cat sakila-backend-0.my.cnf
+

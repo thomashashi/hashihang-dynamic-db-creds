@@ -1,0 +1,124 @@
+#!/bin/sh
+
+PATH=`pwd`/bin:$PATH
+if [ -f demo_env.sh ]; then
+    . ./demo_env.sh
+fi
+
+CRED_NUMS="0 1 2"
+
+export VAULT_TOKEN=${VAULT_ROOT_TOKEN}
+export MYSQL_HOST=${DB_HOSTNAME}
+export MYSQL_TCP_PORT=${DB_PORT}
+
+vault token create -policy sakila-backend -format=json > sakila-backend.token
+SAKILA_BACKEND_TOKEN=`jq -r .auth.client_token sakila-backend.token`
+
+# Clean up all pre-existing credentials. We won't show this during the talk,
+# because we cover it at the end, but we want to clear out now so we only
+# see the credentials we're talking about in MySQL
+vault lease revoke -prefix database/creds/sakila-admin 2>&1 >/dev/null
+vault lease revoke -prefix database/creds/sakila-backend 2>&1 >/dev/null
+
+
+clear
+echo "Let's generate three credentials files. We'll do it with 'consul-template',"
+echo "much like in the previous step."
+echo
+for i in ${CRED_NUMS}; do
+    VAULT_TOKEN=$SAKILA_BACKEND_TOKEN consul-template \
+	-vault-addr=$VAULT_ADDR \
+	-template "007-sakila-backend.my.cnf.tmpl:sakila-backend-${i}.my.cnf" \
+	-once -vault-renew-token
+done
+ls -l sakila-backend-*.my.cnf
+read
+
+clear
+echo "If we connect to the MySQL server, we'll see three unique usernames:"
+echo
+echo "SELECT user FROM user WHERE user LIKE 'v-token%';"
+echo
+mysql --defaults-file=.my-admin.cnf mysql -e "select user from user where user like 'v-token%';"
+read
+
+clear
+echo "And verify we can use each of those files:"
+for i in ${CRED_NUMS}; do
+    echo "Credential sakila-backend-${i}.my.cnf:"
+    mysql --defaults-file=sakila-backend-${i}.my.cnf -e "show grants;"
+    echo
+done
+read
+
+clear
+echo "Now let's say you start a rolling deployment of a new backend. You push out"
+echo "a canary instance and your monitoring detects you accidentally left DEBUG"
+echo "turned on, so it logged your database credentials to your logging setup."
+echo "With dynamic credentials, revoking a single credential is easy."
+echo
+echo "Let's say it's the instance with sakila-backend-2.my.cnf. We logged the"
+echo "lease ID in the generated configuration file:"
+echo 
+cat sakila-backend-2.my.cnf
+read
+
+clear
+echo "And we can revoke *just* that lease."
+echo
+LEASE_ID=`grep "# Lease:" sakila-backend-2.my.cnf | cut -d ' ' -f 3`
+echo vault lease revoke $LEASE_ID
+vault lease revoke $LEASE_ID
+echo
+read
+
+clear
+echo "Let's see what happened: "
+read
+for i in ${CRED_NUMS}; do
+    echo "Credential sakila-backend-${i}.my.cnf:"
+    mysql --defaults-file=sakila-backend-${i}.my.cnf -e "show grants;"
+    echo
+done
+echo
+echo "Note that sakila-backend-2.my.cnf is no longer usable."
+read
+
+clear
+echo "And let's verify that the user doesn't even exist on the database any more."
+echo
+grep "user=" sakila-backend-2.my.cnf
+echo
+echo "SELECT user FROM user WHERE user LIKE 'v-token%';"
+mysql --defaults-file=.my-admin.cnf mysql -e "select user from user where user like 'v-token%';"
+read
+
+clear
+echo "Now let's pretend your security team has found an exploit the backend code"
+echo "and needs to do an emergency revocation of *all* backend database"
+echo "credentials:"
+echo
+echo vault lease revoke -prefix database/creds/sakila-backend
+vault lease revoke -prefix database/creds/sakila-backend
+read
+
+clear
+echo "Again, let's see what happened: "
+read
+for i in ${CRED_NUMS}; do
+    echo "Credential sakila-backend-${i}.my.cnf:"
+    mysql --defaults-file=sakila-backend-${i}.my.cnf -e "show grants;"
+    echo
+done
+echo
+echo "Note that none of them are usable now."
+read
+
+clear
+echo "And let's verify that none of the users exist in the database:"
+echo
+grep "user=" sakila-backend-*.my.cnf
+echo
+echo "SELECT user FROM user WHERE user LIKE 'v-token%';"
+mysql --defaults-file=.my-admin.cnf mysql -e "select user from user where user like 'v-token%';" --quick
+read
