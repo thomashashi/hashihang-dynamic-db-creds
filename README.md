@@ -7,8 +7,7 @@ Presented by Thomas Kula, Sr. Solutions Engineer
 
 ## Recording Link
 
-XXX Link to the final page goes here after the presentation --- This will be updated when the
-recording is finally available.
+[Solutions Engineering Hangout: Securing Databases with Dynamic Credentials and HashiCorp Vault](https://www.youtube.com/watch?v=kW0Vi3RvbvA)
 
 ## Contents
 
